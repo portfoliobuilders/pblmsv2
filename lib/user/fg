@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lessons</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            padding: 20px;
+        }
+        .lesson {
+            background-color: #7199dd;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .lesson:hover {
+            transform: translateY(-5px);
+        }
+        .lesson h3 {
+            margin: 0;
+            color: #333;
+        }
+        .lesson p {
+            margin: 5px 0 0;
+            color: #666;
+        }
+        .appbar {
+            background: linear-gradient(135deg, #9690af, #9c94bd);
+            padding: 10px;
+            color: rgb(29, 29, 29);
+            display: flex;
+            align-items: center;
+        }
+        .appbar h2 {
+            margin: 0;
+            flex-grow: 1;
+            text-align: center;
+        }
+        .back-button {
+            cursor: pointer;
+        }
+        .video-container {
+            position: relative;
+            max-width: 1280px;
+            margin: auto;
+            background-color: #000;
+            overflow: hidden;
+        }
+        .video-container.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+        }
+        .video-controls-container {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 10;
+        }
+        .play-icon, .pause-icon, .fullscreen-icon, .fullscreen-exit-icon {
+            width: 36px;
+            height: 36px;
+            fill: #fff;
+        }
+        .pause-icon, .fullscreen-exit-icon {
+            display: none;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            background: transparent;
+        }
+        .quality-selector {
+            color: #fff;
+            background-color: #333;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .seekbar {
+            flex-grow: 1;
+            margin: 0 10px;
+        }
+        .description, .doc-url {
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+        }
+        .doc-url a {
+            color: #1e90ff;
+            text-decoration: none;
+        }
+        .doc-url a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="appbar">
+    <h2>Lessons</h2>
+</div>
+
+<div class="container" id="lessonsContainer">
+    <!-- Lessons will be injected here by JavaScript -->
+</div>
+
+<script>
+    function getToken() {
+        return localStorage.getItem('token');
+    }
+
+    function fetchLessons(moduleId, courseId) {
+        const token = getToken();
+        if (!token) {
+            document.body.innerHTML = '<p>Please log in to view lessons.</p>';
+            return;
+        }
+
+        fetch(`https://lms-server-202k.onrender.com/api/v1/courses/${courseId}/modules/${moduleId}/lessons/all`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-portfolio-builders-auth': token
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('API Response:', data);
+
+            const lessonsContainer = document.getElementById('lessonsContainer');
+            if (data.success) {
+                const lessons = data.data; // Adjusted based on actual response structure
+                if (Array.isArray(lessons) && lessons.length > 0) {
+                    lessons.forEach(lesson => {
+                        const lessonElement = document.createElement('div');
+                        lessonElement.className = 'lesson';
+                        lessonElement.innerHTML = `
+                            <h3>${lesson.name || 'No Name'}</h3>
+                            <p>${lesson.description || 'No Description'}</p>
+                            ${lesson.docUrls ? `<p class="doc-url"><a href="${lesson.docUrls}" target="_blank">Open Document</a></p>` : ''}
+                        `;
+                        lessonElement.addEventListener('click', () => {
+                            displayLessonDetails(lesson);
+                        });
+                        lessonsContainer.appendChild(lessonElement);
+                    });
+                } else {
+                    lessonsContainer.innerHTML = '<p>No lessons found.</p>';
+                }
+            } else {
+                lessonsContainer.innerHTML = `<p>${data.message || 'Error fetching lessons.'}</p>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching lessons:', error);
+            document.body.innerHTML = '<p>An error occurred while fetching lessons.</p>';
+        });
+    }
+
+    function getModuleId() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('moduleId');
+    }
+
+    function getCourseId() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('courseId');
+    }
+
+    function displayLessonDetails(lesson) {
+        const lessonDetails = `
+            <div class="lesson-details">
+                <h2>${lesson.name}</h2>
+                <p>${lesson.description}</p>
+<p style="
+    background-color: #fffae6; 
+    border-left: 5px solid #ffcc00; 
+    padding: 15px; 
+    font-family: Arial, sans-serif; 
+    font-size: 16px; 
+    color: #333; 
+    border-radius: 5px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+">
+    <strong>Note For Students:</strong> After watching this video, please click the activity button below to access the breakout activity or minor project for your current class. If the link is not visible, leave this notification and continue to the next video.
+</p>
+${lesson.doc_urls ? `
+    <p class="doc-url" style="
+        margin: 20px 0; 
+        text-align: center;
+    ">
+        <a href="${lesson.doc_urls}" target="_blank" style="
+            display: inline-block;
+            background-color: #007bff; 
+            color: white; 
+            padding: 10px 20px; 
+            text-decoration: none; 
+            font-size: 16px; 
+            font-weight: bold; 
+            border-radius: 5px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease;
+        " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
+            Break Out Activity
+        </a>
+    </p>
+` : ''}
+
+                <div class="video-container" id="video-container" data-volume-level="high">
+                    <div id="video-frame"></div>
+                    <div class="video-controls-container">
+                        <button class="play-pause-btn">
+                            <svg class="play-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z" />
+                            </svg>
+                            <svg class="pause-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M14,19H18V5H14M6,19H10V5H6V19Z" />
+                            </svg>
+                        </button>
+                        <input type="range" class="seekbar" value="0" min="0" max="100" step="1">
+                        <select class="quality-selector">
+                            <option value="auto">Auto</option>
+                            <option value="hd720">720p</option>
+                            <option value="hd1080">1080p</option>
+                            <option value="highres">Highest</option>
+                            <option value="large">480p</option>
+                            <option value="medium">360p</option>
+                            <option value="small">240p</option>
+                        </select>
+                        <button class="fullscreen-btn">
+                            <svg class="fullscreen-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                            </svg>
+                            <svg class="fullscreen-exit-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="overlay"></div>
+                </div>
+            </div>
+        `;
+
+        const lessonDetailsContainer = document.createElement('div');
+        lessonDetailsContainer.innerHTML = lessonDetails;
+        document.body.innerHTML = '';
+        document.body.appendChild(lessonDetailsContainer);
+
+        loadVideo(lesson.url);
+    }
+
+    function loadVideo(videoUrl) {
+        const videoFrame = document.getElementById('video-frame');
+        const videoId = extractYouTubeID(videoUrl);
+
+        if (videoId) {
+            // Load YouTube video
+            player = new YT.Player('video-frame', {
+                height: '720',
+                width: '1280',
+                videoId: videoId,
+                playerVars: {
+                    'autoplay': 0,
+                    'controls': 0,
+                    'rel': 0,
+                    'showinfo': 0,
+                    'modestbranding': 1,
+                    'iv_load_policy': 3
+                },
+                events: {
+                    'onReady': onPlayerReady
+                }
+            });
+        } else {
+            videoFrame.innerHTML = '<p>Invalid video URL</p>';
+        }
+    }
+
+    function onPlayerReady(event) {
+    const playButton = document.querySelector('.play-pause-btn');
+    const playIcon = document.querySelector('.play-icon');
+    const pauseIcon = document.querySelector('.pause-icon');
+    const fullscreenButton = document.querySelector('.fullscreen-btn');
+    const fullscreenIcon = document.querySelector('.fullscreen-icon');
+    const fullscreenExitIcon = document.querySelector('.fullscreen-exit-icon');
+    const backwardButton = document.querySelector('.backward-btn');
+    const forwardButton = document.querySelector('.forward-btn');
+    const videoContainer = document.querySelector('.video-container');
+    const overlay = document.querySelector('.overlay');
+
+    playButton.addEventListener('click', () => {
+        if (event.target.getPlayerState() === YT.PlayerState.PLAYING) {
+            event.target.pauseVideo();
+            playIcon.style.display = 'inline';
+            pauseIcon.style.display = 'none';
+        } else {
+            event.target.playVideo();
+            playIcon.style.display = 'none';
+            pauseIcon.style.display = 'inline';
+        }
+    });
+
+    fullscreenButton.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            videoContainer.requestFullscreen().catch(err => {
+                alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+            fullscreenIcon.style.display = 'none';
+            fullscreenExitIcon.style.display = 'inline';
+        } else {
+            document.exitFullscreen();
+            fullscreenIcon.style.display = 'inline';
+            fullscreenExitIcon.style.display = 'none';
+        }
+    });
+
+    overlay.addEventListener('click', () => {
+        playButton.click();
+    });
+    document.querySelector('.seekbar').addEventListener('input', (event) => {
+            const seekBar = event.target;
+            const newTime = player.getDuration() * (seekBar.value / 100);
+            player.seekTo(newTime, true);
+        });
+
+    backwardButton.addEventListener('click', () => {
+        const currentTime = event.target.getCurrentTime();
+        event.target.seekTo(currentTime - 10, true); // Go back 10 seconds
+    });
+
+    forwardButton.addEventListener('click', () => {
+        const currentTime = event.target.getCurrentTime();
+        event.target.seekTo(currentTime + 10, true); // Go forward 10 seconds
+    });
+    backwardButton.addEventListener('click', () => {
+        const currentTime = player.getCurrentTime();
+        player.seekTo(currentTime - 10, true); // Go back 10 seconds
+    });
+
+    forwardButton.addEventListener('click', () => {
+        const currentTime = player.getCurrentTime();
+        player.seekTo(currentTime + 10, true); // Go forward 10 seconds
+    });
+
+    event.target.playVideo();
+}
+
+
+    function extractYouTubeID(url) {
+        const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[7].length == 11) ? match[7] : null;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const moduleId = getModuleId();
+        const courseId = getCourseId();
+        fetchLessons(moduleId, courseId);
+    });
+</script>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
