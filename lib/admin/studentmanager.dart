@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:portfoliobuilderslms/admin/excel/excelstudent.dart';
@@ -62,33 +62,16 @@ class _AdminRegisteredStudentsPageState
   }
 
   // Delete a user
-Future<void> _deleteUser(String userId, String email, String password) async {
-  try {
-    final auth = FirebaseAuth.instance;
-
-    // Reauthenticate the user to delete them (if email/password is available)
-    User? user = auth.currentUser;
-
-    if (user != null && user.email == email) {
-      AuthCredential credential =
-          EmailAuthProvider.credential(email: email, password: password);
-
-      await user.reauthenticateWithCredential(credential);
-      await user.delete();
+  Future<void> _deleteUser(String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).delete();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('User deleted successfully!')));
+      setState(() {}); // Refresh the UI after deleting the user
+    } catch (e) {
+      print('Error deleting user: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete user: $e')));
     }
-
-    // Remove user from Firestore collection
-    await _firestore.collection('users').doc(userId).delete();
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('User deleted successfully!')));
-    setState(() {}); // Refresh the UI
-  } catch (e) {
-    print('Error deleting user: $e');
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Failed to delete user: $e')));
   }
-}
 
   // Show dialog to select and add a course to a student
   Future<void> _showAddCourseDialog(BuildContext context, String studentUid) async {
@@ -335,7 +318,17 @@ Future<void> _deleteUser(String userId, String email, String password) async {
                   ),
                 ),
               ),
-             
+              Expanded(
+                child: TextButton(
+                  onPressed: () {
+                    _deleteUser(studentUid);
+                  },
+                  child: const Text(
+                    'Delete User',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ),
             ],
           );
         },
